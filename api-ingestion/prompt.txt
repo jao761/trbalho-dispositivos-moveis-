@@ -1,0 +1,558 @@
+Você é um agente de desenvolvimento backend. Sua tarefa é criar uma **API REST completa em Python**, utilizando **FastAPI**, que consulta um **banco de dados PostgreSQL real** para simular uma API de consulta de produtos utilizada na montagem de orçamentos de clientes.
+
+## REGRA FUNDAMENTAL DO PROJETO
+
+O agente deve **CRIAR a estetura e tabelas os dados estão no arquivo de dados  TODAS AS TABELAS NECESSÁRIAS**.
+
+Não assumir que:
+
+* o banco de dados já existe;
+* as tabelas já existem;
+* as migrations já existem;
+* o schema já foi aplicado;
+* existe uma estrutura PostgreSQL pronta para ser utilizada;
+* existe um banco externo para conexão.
+
+O ambiente deve ser completamente reproduzível a partir dos arquivos gerados pelo projeto.
+
+A estrutura SQL fornecida abaixo e o arquivo `dados-do-banco` são as **únicas bases de referência para a estrutura e os dados do projeto**.
+
+O agente deve:
+
+1. Criar o banco PostgreSQL por meio do `docker-compose`.
+2. Criar todas as tabelas necessárias.
+3. Criar todos os relacionamentos necessários.
+4. Criar extensões, índices e demais objetos necessários.
+5. Carregar os dados reais presentes no arquivo `dados-do-banco`.
+6. Criar automaticamente qualquer tabela auxiliar necessária para atender aos requisitos da API.
+7. Não depender de nenhum banco externo.
+8. Não utilizar SQLite.
+9. Não utilizar banco em memória.
+10. Não utilizar mocks para substituir o PostgreSQL.
+11. Não inventar uma estrutura de dados diferente da fornecida.
+12. Caso seja necessário adaptar o arquivo `dados-do-banco` ao schema, fazer o mapeamento explicitamente e documentá-lo no README.
+
+**O arquivo `dados-do-banco` deve ser tratado como fonte dos dados, e não como um banco ele e os dados literais da tabela pre passada mas as outrastabelas nao existem.**
+
+---
+
+# 1. ESTRUTURA BASE DO BANCO
+
+A tabela `produto` deve possuir, a seguinte estrutura, para respeitar os dados:
+
+```sql
+CREATE TABLE produto (
+    id UUID PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    marca VARCHAR(100),
+    codigo_barras VARCHAR(50),
+    categoria_id UUID REFERENCES categoria(id),
+    preco_custo NUMERIC(10,2),
+    preco_venda NUMERIC(10,2),
+    unidade VARCHAR(10),
+    estoque INTEGER,
+    ativo BOOLEAN DEFAULT TRUE
+);
+```
+
+Deve existir também uma tabela `categoria`, contendo pelo menos:
+
+```sql
+CREATE TABLE categoria (
+    id UUID PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL
+);
+```
+
+A relação deve ser:
+
+```text
+categoria 1 ---- N produto
+```
+
+por meio de:
+
+```text
+produto.categoria_id -> categoria.id
+```
+
+Caso o arquivo `dados-do-banco` contenha informações adicionais necessárias para representar corretamente os dados, o agente poderá criar tabelas auxiliares compatíveis.
+O arquivo contem os dados com as infrmcoes para tabela produtos tome cuidado ao criar novas tabeals pq o arquivo tem mais de 1000 linhas
+existem indices no arquivo de dados que ajudam na separação de caterogria entao se voce quiser injetar via codigo e nao manualmmente voce deve separar de acordo com oque estala para nao torrar todos os token
+---
+
+# 2. INSPEÇÃO OBRIGATÓRIA DO ARQUIVO DE DADOS
+
+Existe um arquivo chamado:
+
+```text
+dados-do-banco
+```
+
+O formato desse arquivo deve ser identificado **antes de implementar o seed**.
+
+O arquivo pode ser, por exemplo:
+
+* `.sql`
+* outro formato estruturado equivalente.
+
+O agente deve primeiro inspecionar o arquivo e identificar:
+
+* formato;
+* estrutura;
+* tabelas representadas;
+* nomes das colunas;
+* tipos aparentes;
+* quantidade de registros (1000);
+* relacionamentos existentes;
+* possíveis divergências em relação ao schema solicitado.
+
+### IMPORTANTE
+
+Não assumir previamente que o arquivo é SQL.
+
+Primeiro identificar o formato.
+
+Depois criar o mecanismo de importação adequado.
+
+---
+
+# 3. CRIAÇÃO AUTOMÁTICA DO BANCO
+
+O projeto deve criar automaticamente toda a infraestrutura necessária.
+
+O `docker-compose.yml` deve possuir pelo menos:
+
+```text
+api
+postgres
+```
+
+O PostgreSQL deve utilizar a imagem oficial:
+
+```text
+postgres
+```
+
+e possuir volume persistente.
+
+O banco deve ser criado automaticamente utilizando as variáveis definidas no `.env`.
+
+Exemplo:
+
+```env
+POSTGRES_DB=orcamentos
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+```
+
+Criar também:
+
+```text
+.env.example
+```
+
+Não versionar um `.env` real contendo credenciais.
+
+---
+
+# 4. INICIALIZAÇÃO DO POSTGRES
+
+A inicialização do PostgreSQL deve executar automaticamente os scripts necessários.
+
+Utilizar, por exemplo:
+
+```text
+/docker-entrypoint-initdb.d/
+```
+
+A estrutura pode ser:
+
+```text
+database/
+├── init.sql
+└── seed.sql
+```
+
+ou outra estrutura equivalente.
+
+O processo deve:
+
+1. habilitar a extensão `unaccent`;
+2. habilitar extensões adicionais necessárias, como `pg_trgm`, caso sejam utilizadas;
+3. criar a tabela `categoria`;
+4. criar a tabela `produto`;
+5. criar eventuais tabelas auxiliares;
+6. criar relacionamentos;
+7. criar índices;
+8. carregar os dados provenientes do arquivo `dados-do-banco`.
+
+A inicialização deve funcionar automaticamente na primeira subida do PostgreSQL.
+
+---
+
+# 5. DADOS DO ARQUIVO
+
+Os dados existentes no arquivo `dados-do-banco` devem ser preservados.
+
+Não substituir os dados reais por dados fictícios.
+
+Se os campos do arquivo não corresponderem exatamente ao schema solicitado, realizar o mapeamento.
+
+Exemplo:
+
+```text
+campo_original -> campo_produto
+```
+
+Toda divergência deve ser documentada no README.
+
+### Não fazer:
+
+* ignorar silenciosamente campos;
+* apagar registros sem explicar;
+* substituir dados reais por mocks;
+* inventar valores para campos existentes no arquivo sem necessidade.
+
+Caso seja necessário gerar `qtd_vendida`, isso deve ser feito separadamente, conforme descrito abaixo.
+
+---
+
+# 6. CAMPO DE PRODUTOS MAIS COMPRADOS
+
+O schema original não possui uma coluna `qtd_vendida`.
+
+Para implementar:
+
+```text
+sort=mais_comprados
+```
+
+criar uma tabela auxiliar, preferencialmente:
+
+```sql
+produto_estatistica
+```
+
+com relacionamento com `produto`.
+
+Por exemplo:
+
+```sql
+CREATE TABLE produto_estatistica (
+    produto_id UUID PRIMARY KEY REFERENCES produto(id),
+    qtd_vendida INTEGER NOT NULL DEFAULT 0
+);
+```
+
+Os valores de `qtd_vendida` podem ser gerados durante o seed para fins de demonstração.
+
+**Esses valores devem ser identificados no README como dados estatísticos de demonstração e não como dados reais provenientes do arquivo `dados-do-banco`.**
+
+---
+
+# 7. API
+
+Utilizar:
+
+```text
+Python
+FastAPI
+SQLAlchemy
+PostgreSQL
+```
+
+A API deve utilizar SQLAlchemy Core ou ORM, mas todas as consultas devem resultar em queries SQL parametrizadas executadas diretamente no PostgreSQL.
+
+Não carregar todos os produtos para a memória para depois filtrar ou ordenar em Python.
+
+Toda lógica de:
+
+* filtro;
+* busca;
+* ranking;
+* ordenação;
+* paginação;
+
+deve ser executada pelo PostgreSQL.
+
+---
+
+# 8. EXTENSÃO UNACCENT
+
+Habilitar:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS unaccent;
+```
+
+A busca deve ignorar diferenças de acentuação.
+
+Por exemplo:
+
+```text
+martelo
+MárTELO
+MÁRTELO
+```
+
+devem ser tratados de maneira equivalente na normalização.
+
+A normalização deve ocorrer no PostgreSQL utilizando, por exemplo:
+
+```sql
+lower(unaccent(nome))
+```
+
+e:
+
+```sql
+lower(unaccent(:termo))
+```
+
+---
+
+# 9. ENDPOINT — BUSCA DE UM PRODUTO
+
+Implementar:
+
+```http
+GET /produtos/busca?q={termo}
+```
+
+Esse endpoint deve retornar **somente um produto**.
+
+Nunca retornar uma lista.
+
+Exemplo:
+
+```json
+{
+    "id": "uuid",
+    "nome": "Martelo Profissional",
+    "marca": "Marca X",
+    "codigo_barras": "123456789",
+    "categoria": "Ferramentas",
+    "preco_venda": 89.90,
+    "unidade": "UN",
+    "estoque": 15,
+    "ativo": true
+}
+```
+
+A categoria deve ser obtida por `JOIN` com a tabela `categoria`.
+
+Não retornar somente `categoria_id`.
+
+---
+
+# 10. RANKING DA BUSCA
+
+A busca deve ser completamente determinística.
+
+O mesmo termo, considerando o mesmo estado do banco, deve sempre retornar o mesmo produto.
+
+O ranking deve estar dentro da query SQL utilizando `ORDER BY CASE WHEN`.
+
+Prioridade:
+
+### 1. Match exato
+
+Nome normalizado exatamente igual ao termo normalizado.
+
+### 2. Prefixo
+
+Nome normalizado começa com o termo.
+
+### 3. Palavra inteira
+
+O termo aparece como uma palavra inteira no nome.
+
+Utilizar regex do PostgreSQL, por exemplo:
+
+```sql
+nome_normalizado ~* ('\y' || termo_normalizado || '\y')
+```
+
+Não utilizar somente:
+
+```sql
+ILIKE '%termo%'
+```
+
+para esse critério.
+
+### 4. Fallback
+
+Caso nenhuma das condições anteriores seja atendida:
+
+```sql
+ILIKE '%termo%'
+```
+
+como critério de menor prioridade.
+
+### 5. Desempate
+
+Utilizar:
+
+```sql
+ORDER BY nome ASC
+```
+
+como desempate final.
+
+Nunca utilizar:
+
+* ordem de INSERT;
+* ordem natural do banco;
+* valores aleatórios;
+* `RANDOM()`.
+
+A query deve possuir:
+
+```sql
+LIMIT 1
+```
+
+Se nenhum produto for encontrado:
+
+```http
+404 Not Found
+```
+
+com JSON padronizado:
+
+```json
+{
+    "detail": "Nenhum produto encontrado para o termo informado."
+}
+```
+
+---
+
+# 11. ENDPOINT — LISTAGEM PAGINADA
+
+Implementar:
+
+```http
+GET /produtos
+```
+
+Parâmetros:
+
+```text
+q
+page
+pageSize
+sort
+```
+
+Exemplo:
+
+```http
+GET /produtos?q=martelo&page=1&pageSize=10&sort=relevancia
+```
+
+---
+
+# 12. FILTRO DE PRODUTOS ATIVOS
+
+Por padrão, somente produtos:
+
+```sql
+ativo = TRUE
+```
+
+devem aparecer.
+
+Deve existir um parâmetro explícito para permitir a consulta de produtos inativos.
+
+Por exemplo:
+
+```text
+ativo=true
+```
+
+ou:
+
+```text
+incluir_inativos=true
+```
+
+Documentar a decisão no README.
+
+O comportamento padrão nunca deve retornar produtos inativos.
+
+---
+
+# 13. SORT=RELEVANCIA
+
+Valor padrão:
+
+```text
+sort=relevancia
+```
+
+Deve utilizar o mesmo princípio de ranking do endpoint:
+
+```text
+match exato
+↓
+prefixo
+↓
+palavra inteira
+↓
+fallback parcial
+↓
+nome ASC
+```
+
+Porém, neste endpoint não utilizar:
+
+```sql
+LIMIT 1
+```
+
+A query deve retornar todos os resultados relevantes e aplicar paginação.
+
+---
+
+# 14. SORT=MAIS_COMPRADOS
+
+Quando:
+
+```text
+sort=mais_comprados
+```
+
+for utilizado, ordenar por:
+
+```sql
+qtd_vendida DESC
+```
+
+e utilizar `nome ASC` como desempate determinístico.
+
+Exemplo:
+
+```sql
+ORDER BY
+    qtd_vendida DESC,
+    nome ASC
+```
+
+---
+
+# 15. PAGINAÇÃO
+
+Implementar paginação utilizando:
+
+```sql
+LIMIT
+OFFSET
+```
+
+O valor padrão deve ser:
