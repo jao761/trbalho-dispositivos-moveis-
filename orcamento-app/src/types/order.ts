@@ -1,4 +1,4 @@
-export type OrderStatus = 'AGUARDANDO PAGAMENTO' | 'PAGO' | 'PROCESSANDO' | 'ENVIADO' | 'ENTREGUE' | 'CANCELADO';
+export type OrderStatus = 'PENDING' | 'PAYMENT_PENDING' | 'PAID' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'AGUARDANDO PAGAMENTO' | 'PAGO' | 'PROCESSANDO' | 'ENVIADO' | 'ENTREGUE' | 'CANCELADO';
 
 export interface OrderItem {
   id: string;

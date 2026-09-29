@@ -6,11 +6,11 @@ import { AppCard } from '@/components/app-card';
 import { AppHeader } from '@/components/app-header';
 import { AppScreen } from '@/components/app-screen';
 import { AppColors } from '@/constants/app-theme';
-import { currentCompany, currentUser } from '@/mocks/account';
+import { logout } from '@/services/auth';
+import { getActiveCompany, getActiveUser } from '@/services/session';
 
 const settings = [
   { label: 'Minha conta', detail: 'Dados pessoais e acesso', path: undefined },
-  { label: 'Empresa', detail: currentCompany.name, path: undefined },
   { label: 'Preferências', detail: 'Aparência e formato de valores', path: undefined },
   { label: 'Notificações', detail: 'Alertas do aplicativo', path: undefined },
   { label: 'Segurança', detail: 'Senha e permissões', path: undefined },
@@ -21,7 +21,15 @@ const settings = [
 
 export default function ProfileScreen() {
   const router = useRouter();
-  return <AppScreen activeTab="perfil" header={<AppHeader title="Perfil" subtitle="Configurações da conta" />}><View style={styles.page}><AppCard style={styles.profile}><View style={styles.avatar}><Text style={styles.avatarText}>{currentUser.initials}</Text></View><View><Text style={styles.name}>{currentUser.name}</Text><Text style={styles.email}>{currentUser.email}</Text><Text style={styles.company}>{currentCompany.name}</Text></View></AppCard>{settings.map((setting) => setting.path ? <Link href={setting.path as never} asChild key={setting.label}><Pressable style={({ pressed }) => pressed && styles.pressed}><SettingCard detail={setting.detail} label={setting.label} /></Pressable></Link> : <SettingCard detail={setting.detail} key={setting.label} label={setting.label} />)}<AppButton label="Sair" onPress={() => router.replace('/')} style={styles.logout} variant="danger" /></View></AppScreen>;
+  const user = getActiveUser();
+  const company = getActiveCompany();
+  const handleLogout = async () => {
+    await logout();
+    router.replace('/');
+  };
+  if (!user || !company) return null;
+  const profileSettings = [{ label: 'Empresa', detail: company.name, path: undefined }, ...settings];
+  return <AppScreen activeTab="perfil" header={<AppHeader title="Perfil" subtitle="Configurações da conta" />}><View style={styles.page}><AppCard style={styles.profile}><View style={styles.avatar}><Text style={styles.avatarText}>{user.initials}</Text></View><View><Text style={styles.name}>{user.name}</Text><Text style={styles.email}>{user.email}</Text><Text style={styles.company}>{company.name}</Text></View></AppCard>{profileSettings.map((setting) => setting.path ? <Link href={setting.path as never} asChild key={setting.label}><Pressable style={({ pressed }) => pressed && styles.pressed}><SettingCard detail={setting.detail} label={setting.label} /></Pressable></Link> : <SettingCard detail={setting.detail} key={setting.label} label={setting.label} />)}<AppButton label="Sair" onPress={handleLogout} style={styles.logout} variant="danger" /></View></AppScreen>;
 }
 
 function SettingCard({ label, detail }: { label: string; detail: string }) { return <AppCard style={styles.setting}><View><Text style={styles.settingLabel}>{label}</Text><Text style={styles.settingDetail}>{detail}</Text></View><Text style={styles.arrow}>›</Text></AppCard>; }
