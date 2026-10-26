@@ -1,4 +1,14 @@
-export type QuoteStatus = 'RASCUNHO' | 'ENVIADO' | 'APROVADO' | 'RECUSADO' | 'EXPIRADO';
+export type QuoteStatus =
+  | 'DRAFT'
+  | 'SENT'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'EXPIRED'
+  | 'RASCUNHO'
+  | 'ENVIADO'
+  | 'APROVADO'
+  | 'RECUSADO'
+  | 'EXPIRADO';
 
 export interface QuoteItem {
   id: string;
@@ -17,6 +27,8 @@ export interface Quote {
   createdAt: string;
   validUntil: string;
   discount: number;
+  subtotal?: number;
+  total?: number;
   notes: string;
   items: QuoteItem[];
 }
