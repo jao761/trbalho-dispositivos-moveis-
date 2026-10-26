@@ -40,7 +40,7 @@
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo start --android",
+    "android": "sh -c 'if [ -x \"${ANDROID_HOME:-$HOME/Android/Sdk}/platform-tools/adb\" ]; then exec expo start --android \"$@\"; else echo \"Android SDK/adb nao encontrado; iniciando o Metro sem abrir o emulador.\"; exec expo start \"$@\"; fi' --",
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint"
