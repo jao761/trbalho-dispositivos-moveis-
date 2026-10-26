@@ -118,3 +118,11 @@ Pedido
 Pagamento
       ↓
 Compra
+
+---
+
+## Documentação e validação
+
+A visão consolidada do produto, história do usuário, requisitos funcionais e não
+funcionais, estado da implementação, bugs conhecidos e resultado da validação
+ponta a ponta está em [`DOCUMENTACAO_UNIFICADA.md`](DOCUMENTACAO_UNIFICADA.md).
