@@ -11,9 +11,10 @@ import { SearchBar } from '@/components/search-bar';
 import { SectionTitle } from '@/components/section-title';
 import { AppColors, AppRadius } from '@/constants/app-theme';
 import { clients as mockClients } from '@/mocks/clients';
-import { products } from '@/mocks/products';
+import { products as mockProducts } from '@/mocks/products';
 import { USE_MOCKS } from '@/services/api';
 import { listClients } from '@/services/clients';
+import { listProducts } from '@/services/products';
 import { createQuote } from '@/services/quotes';
 import type { Client } from '@/types/client';
 import type { QuoteItem } from '@/types/quote';
@@ -23,6 +24,7 @@ export default function NewQuoteScreen() {
   const router = useRouter();
   const [clientsList, setClientsList] = useState<Client[]>(USE_MOCKS ? mockClients : []);
   const [clientId, setClientId] = useState(USE_MOCKS ? mockClients[0]?.id ?? '' : '');
+  const [productsList, setProductsList] = useState(USE_MOCKS ? mockProducts : []);
   const [productSearch, setProductSearch] = useState('');
   const [items, setItems] = useState<QuoteItem[]>([]);
   const [discountText, setDiscountText] = useState('0');
@@ -41,18 +43,21 @@ export default function NewQuoteScreen() {
       .catch((err: unknown) => setErrorMessage(err instanceof Error ? err.message : 'Não foi possível carregar os clientes.'));
   }, []);
 
+  useEffect(() => {
+    listProducts(productSearch)
+      .then(setProductsList)
+      .catch((err: unknown) => setErrorMessage(err instanceof Error ? err.message : 'Não foi possível carregar o catálogo.'));
+  }, [productSearch]);
+
   const selectedClient = clientsList.find((client) => client.id === clientId) ?? clientsList[0];
-  const matchingProducts = useMemo(
-    () => products.filter((product) => product.name.toLowerCase().includes(productSearch.toLowerCase())),
-    [productSearch]
-  );
+  const matchingProducts = useMemo(() => productsList, [productsList]);
 
   const subtotal = getQuoteSubtotal(items);
   const discount = Math.min(subtotal, Math.max(0, Number(discountText.replace(',', '.')) || 0));
   const total = subtotal - discount;
 
   const addProduct = (productId: string) => {
-    const product = products.find((item) => item.id === productId);
+    const product = productsList.find((item) => item.id === productId);
     if (!product) return;
     setItems((current) => {
       const previous = current.find((item) => item.productId === product.id);
@@ -129,7 +134,7 @@ export default function NewQuoteScreen() {
         </Text>
 
         <SectionTitle title="2. Produtos" />
-        {!USE_MOCKS ? <Text style={styles.inputHint}>O catálogo será exibido após a integração com a API externa de produtos.</Text> : null}
+        {!USE_MOCKS ? <Text style={styles.inputHint}>Catálogo sincronizado com a API de produtos.</Text> : null}
         <SearchBar onChangeText={setProductSearch} placeholder="Pesquisar produto" value={productSearch} />
         {(USE_MOCKS ? matchingProducts : []).map((product) => (
           <Pressable key={product.id} onPress={() => addProduct(product.id)} style={({ pressed }) => pressed && styles.pressed}>

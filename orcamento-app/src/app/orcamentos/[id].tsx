@@ -8,7 +8,7 @@ import { AppHeader } from '@/components/app-header';
 import { AppScreen } from '@/components/app-screen';
 import { StatusBadge } from '@/components/status-badge';
 import { AppColors } from '@/constants/app-theme';
-import { approveQuote, getQuote } from '@/services/quotes';
+import { approveQuote, getQuote, rejectQuote } from '@/services/quotes';
 import { createOrderFromQuote } from '@/services/orders';
 import { getActiveCompany } from '@/services/session';
 import type { Quote } from '@/types/quote';
@@ -68,6 +68,21 @@ export default function QuoteDetailScreen() {
       router.push('/pedidos' as never);
     } catch (err: unknown) {
       setMessage(`Erro ao gerar pedido: ${err instanceof Error ? err.message : 'tente novamente.'}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!quote?.id) return;
+    setActionLoading(true);
+    setMessage('');
+    try {
+      const updated = await rejectQuote(quote.id);
+      setQuote(updated);
+      setMessage('Orçamento recusado.');
+    } catch (err: unknown) {
+      setMessage(`Erro ao recusar: ${err instanceof Error ? err.message : 'tente novamente.'}`);
     } finally {
       setActionLoading(false);
     }
@@ -158,22 +173,22 @@ export default function QuoteDetailScreen() {
             onPress={handleGenerateOrder}
           />
         ) : (
-          <AppButton
-            label={actionLoading ? 'Aprovando...' : 'Aprovar Orçamento'}
-            onPress={handleApprove}
-          />
+          <View style={styles.decisionActions}>
+            <AppButton label={actionLoading ? 'Processando...' : 'Aprovar Orçamento'} onPress={handleApprove} style={styles.decisionButton} />
+            <AppButton label="Recusar" onPress={handleReject} style={styles.decisionButton} variant="secondary" />
+          </View>
         )}
 
         <View style={styles.actions}>
           <AppButton label="Editar itens" onPress={() => router.push({ pathname: '/orcamentos/itens', params: { id: activeQuote.id } } as never)} style={styles.actionButton} variant="secondary" />
           <AppButton
             label="Gerar PDF"
-            onPress={() => router.push('/compartilhar' as never)}
+            onPress={() => router.push({ pathname: '/compartilhar', params: { id: activeQuote.id } } as never)}
             style={styles.actionButton}
           />
           <AppButton
             label="Compartilhar"
-            onPress={() => router.push('/compartilhar' as never)}
+            onPress={() => router.push({ pathname: '/compartilhar', params: { id: activeQuote.id } } as never)}
             style={styles.actionButton}
             variant="secondary"
           />
@@ -232,5 +247,7 @@ const styles = StyleSheet.create({
   notesTitle: { color: AppColors.primaryDark, fontSize: 11, fontWeight: '800' },
   notesCopy: { color: AppColors.muted, fontSize: 12, lineHeight: 18, marginTop: 5 },
   actions: { flexDirection: 'row', gap: 10 },
+  decisionActions: { flexDirection: 'row', gap: 10 },
+  decisionButton: { flex: 1, minWidth: 0 },
   actionButton: { flex: 1, minWidth: 0 },
 });

@@ -59,9 +59,9 @@ Cadastro/Login
 | Aprovação e recusa de orçamentos | Implementado na API; aprovação disponível na tela | `quotes.py`, `orcamentos/[id].tsx` |
 | Conversão de orçamento em pedido | Implementado | `backend/api/order_api/routers/orders.py` |
 | Pagamentos e webhook idempotente | Implementado na API | `backend/api/payment_api/routers/payments.py`, `webhooks.py` |
-| Catálogo real de produtos no app | Pendente | A tela ainda usa mocks e o formulário bloqueia o catálogo quando mocks estão desativados |
-| Geração real de PDF | Pendente | A tela de compartilhamento apenas informa que a ação será integrada futuramente |
-| Compartilhamento real | Pendente | WhatsApp, e-mail, salvar e imprimir ainda são ações demonstrativas |
+| Catálogo real de produtos no app | Implementado | `orcamento-app/src/services/products.ts` consome a API de ingestão |
+| Geração real de PDF | Implementado | `orcamento-app/src/app/compartilhar.tsx` usa `expo-print` |
+| Compartilhamento real | Implementado | `expo-sharing` e `Share` usam os recursos do dispositivo |
 | Recuperação de senha | Pendente | O botão de recuperação no login não executa nenhuma ação |
 
 ## 5. Requisitos funcionais
@@ -78,14 +78,14 @@ Cadastro/Login
 | RF08 | Criar orçamento com cliente, itens, quantidade, preço, desconto e observações | Implementado |
 | RF09 | Calcular subtotal e total do orçamento | Implementado no app e validado no backend |
 | RF10 | Listar orçamentos e filtrar por status | Implementado |
-| RF11 | Aprovar ou recusar orçamento | Implementado na API; recusa precisa ser exposta na interface |
+| RF11 | Aprovar ou recusar orçamento | Implementado na API e na interface |
 | RF12 | Editar itens de orçamento | Implementado na API e com tela de itens |
 | RF13 | Converter orçamento aprovado em pedido | Implementado |
 | RF14 | Listar pedidos e atualizar status | Implementado |
 | RF15 | Criar e consultar pagamentos | Implementado |
 | RF16 | Processar webhook de pagamento com idempotência | Implementado e coberto por teste |
-| RF17 | Consultar catálogo de produtos e estoque da API de ingestão | Parcial: API existe, app ainda não a consome |
-| RF18 | Gerar PDF, salvar e compartilhar orçamento | Pendente; interface demonstrativa existente |
+| RF17 | Consultar catálogo de produtos e estoque da API de ingestão | Implementado |
+| RF18 | Gerar PDF, salvar e compartilhar orçamento | Implementado |
 | RF19 | Recuperar senha | Pendente |
 
 ## 6. Requisitos não funcionais
@@ -103,7 +103,7 @@ Cadastro/Login
 | RNF09 | TypeScript sem erros de compilação | Validado |
 | RNF10 | Lint sem erros bloqueantes | Validado; existem avisos |
 | RNF11 | Execução em celular físico por IP LAN configurável | Implementado por variáveis `EXPO_PUBLIC_*_API_URL` |
-| RNF12 | Testes automatizados de isolamento, dashboard, histórico, pedido e pagamento | Implementados no backend, mas não executados neste ambiente |
+| RNF12 | Testes automatizados de isolamento, dashboard, histórico, pedido e pagamento | Implementados; E2E executado em Docker |
 | RNF13 | Disponibilidade e observabilidade de produção | Pendente |
 | RNF14 | Proteção de segredos e configuração de produção | Parcial; exige revisão de `.env`, CORS, HTTPS e rotação de chaves |
 
@@ -115,33 +115,36 @@ Cadastro/Login
 |---|---|
 | `cd orcamento-app && npx tsc --noEmit` | Aprovado |
 | `cd orcamento-app && npm run lint` | Aprovado sem erros; 15 avisos |
-| Health check `127.0.0.1:8000/health` | Não executado: serviço indisponível |
-| Health check `127.0.0.1:8001/health` | Não executado: serviço indisponível |
-| Health check `127.0.0.1:8002/health` | Não executado: serviço indisponível |
-| `PYTHONPATH=. backend/.venv/bin/pytest -q` | Bloqueado: ambiente virtual e Python não disponíveis |
-| Fluxo mobile real contra APIs e PostgreSQL | Bloqueado: APIs, banco e runtime mobile não estavam ativos |
+| Health check `127.0.0.1:8000/health` | Aprovado |
+| Health check `127.0.0.1:8001/health` | Aprovado |
+| Health check `127.0.0.1:8002/health` | Aprovado |
+| Health check `127.0.0.1:8050/health` | Aprovado |
+| Fluxo backend contra APIs e PostgreSQL | Aprovado em Docker |
+| Bundle web do frontend | Aprovado com `npx expo export --platform web` |
 
 ### 7.2 Cenários E2E definidos
 
 | Cenário | Resultado atual |
 |---|---|
-| Cadastro/login e restauração de sessão | Implementação presente; execução real bloqueada por APIs desligadas |
-| Criar cliente e consultar detalhes | Implementação presente; execução real bloqueada por APIs desligadas |
-| Criar orçamento com item e desconto | API e tela presentes; catálogo real bloqueia o caminho sem mocks |
-| Aprovar orçamento | Implementação presente; execução real bloqueada por APIs desligadas |
-| Converter orçamento em pedido | API e tela presentes; execução real bloqueada por APIs desligadas |
-| Criar pagamento e receber webhook duplicado | Teste automatizado existente; não executado por falta do ambiente Python |
-| Gerar PDF e compartilhar | Não implementado; tela é demonstrativa |
+| Cadastro/login | Aprovado contra Core API |
+| Consultar cliente | Aprovado contra Core API |
+| Consultar catálogo real | Aprovado contra Product API |
+| Criar orçamento com item e desconto | Aprovado contra Core API |
+| Aprovar orçamento | Aprovado contra Core API |
+| Converter orçamento em pedido | Aprovado contra Order API |
+| Criar pagamento e receber webhook duplicado | Aprovado: `processed`, depois `ignored` |
+| Status final do pedido | Aprovado: `PAID` |
+| Gerar bundle e rota de compartilhamento | Aprovado no build web; PDF requer runtime Expo |
 
 ## 8. Bugs e pendências encontrados
 
 | ID | Severidade | Local | Descrição | Impacto | Correção recomendada |
 |---|---|---|---|---|---|
 | BUG01 | Alta | `orcamento-app/src/app/index.tsx` | O botão “Esqueceu sua senha?” usa `onPress={() => undefined}` e não executa recuperação. | Usuário sem acesso não consegue iniciar recuperação de conta. | Criar endpoint de recuperação, tela/formulário e fluxo de token ou código expirável. |
-| BUG02 | Alta | `orcamento-app/src/app/orcamentos/novo.tsx` | Com `EXPO_PUBLIC_USE_MOCKS=false`, o catálogo de produtos não é carregado e nenhum produto pode ser adicionado. | O fluxo principal de criação de orçamento não funciona em integração real. | Criar serviço de catálogo consumindo a API de ingestão e substituir o array mock na tela. |
-| BUG03 | Média | `orcamento-app/src/app/produtos/index.tsx` | A tela de produtos sempre usa `@/mocks/products`, mesmo fora do modo de mocks. | Exibe dados fictícios como se fossem catálogo real. | Usar endpoint real quando mocks estiverem desativados e exibir erro explícito em falha. |
-| BUG04 | Média | `orcamento-app/src/app/compartilhar.tsx` | PDF, WhatsApp, e-mail, salvar e imprimir apenas exibem “ação preparada para integração futura”. | O requisito de documento e compartilhamento não é atendido. | Implementar geração PDF e `Share`/integrações nativas, com testes em Android, iOS e web quando aplicável. |
-| BUG05 | Baixa | `orcamento-app/src/app/orcamentos/[id].tsx` | A interface oferece aprovação, mas não oferece recusa, embora a API possua endpoint de rejeição. | O usuário não consegue concluir o fluxo de recusa pelo app. | Adicionar ação de recusar com confirmação e tratamento de estado. |
+| BUG02 | Alta | `orcamento-app/src/app/orcamentos/novo.tsx` | Corrigido: o catálogo agora é carregado pela API de produtos. | — | — |
+| BUG03 | Média | `orcamento-app/src/app/produtos/index.tsx` | Corrigido: a tela usa a API real e só usa mocks quando explicitamente habilitados. | — | — |
+| BUG04 | Média | `orcamento-app/src/app/compartilhar.tsx` | Corrigido: PDF e compartilhamento usam APIs nativas do Expo. | — | — |
+| BUG05 | Baixa | `orcamento-app/src/app/orcamentos/[id].tsx` | Corrigido: a interface passou a oferecer recusa de orçamento. | — | — |
 | BUG06 | Baixa | `orcamento-app/src/app/_layout.tsx` | O efeito de restauração usa `router` e `segments` sem dependências declaradas. | Pode causar comportamento desatualizado em mudanças de rota e mantém aviso de lint. | Refatorar a restauração para callback estável ou ajustar dependências com guarda contra redirecionamento repetido. |
 
 ## 9. Avisos de qualidade atuais
@@ -157,11 +160,7 @@ Esses avisos não bloquearam a compilação, mas devem ser eliminados antes de u
 
 ## 10. Próxima sequência recomendada
 
-1. Subir PostgreSQL e as três APIs e executar os testes Python existentes.
-2. Implementar o cliente de catálogo para conectar o app à API de ingestão.
-3. Corrigir a tela de produtos para respeitar `EXPO_PUBLIC_USE_MOCKS`.
-4. Executar o fluxo E2E completo: login, cliente, orçamento, aprovação, pedido, pagamento e webhook.
-5. Implementar PDF e compartilhamento.
-6. Implementar recuperação de senha.
-7. Corrigir os avisos restantes do lint e adicionar testes de interface para os fluxos críticos.
-
+1. Implementar recuperação de senha.
+2. Corrigir os avisos restantes do lint.
+3. Executar o app em dispositivo físico com os três URLs LAN configurados.
+4. Adicionar testes de interface para os fluxos críticos.

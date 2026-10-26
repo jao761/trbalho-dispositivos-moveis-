@@ -1,0 +1,93 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - backend_postgres_data:/var/lib/postgresql/data
+      - ./backend/docker/postgres-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  core-api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment: &backend-env
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      BUSINESS_DB_USER: business_db_user
+      BUSINESS_DB_PASSWORD: business_pass
+      BUSINESS_DB_NAME: business_db
+      COMMERCE_DB_USER: commerce_db_user
+      COMMERCE_DB_PASSWORD: commerce_pass
+      COMMERCE_DB_NAME: commerce_db
+      JWT_SECRET: change-this-development-secret
+      INTERNAL_API_KEY: change-this-internal-key
+      CORE_API_URL: http://core-api:8000
+      ORDER_API_URL: http://order-api:8001
+      PAYMENT_API_URL: http://payment-api:8002
+    command: >-
+      sh -c "alembic -c backend/database/business/alembic.ini upgrade head &&
+      uvicorn backend.api.core_api.main:app --host 0.0.0.0 --port 8000"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  order-api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment: *backend-env
+    command: >-
+      sh -c "alembic -c backend/database/commerce/alembic.ini upgrade head &&
+      uvicorn backend.api.order_api.main:app --host 0.0.0.0 --port 8001"
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      core-api:
+        condition: service_started
+
+  payment-api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment: *backend-env
+    command: >-
+      sh -c "alembic -c backend/database/commerce/alembic.ini upgrade head &&
+      uvicorn backend.api.payment_api.main:app --host 0.0.0.0 --port 8002"
+    ports:
+      - "8002:8002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      order-api:
+        condition: service_started
+
+  seed:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment: *backend-env
+    command: >-
+      sh -c "alembic -c backend/database/business/alembic.ini upgrade head &&
+      alembic -c backend/database/commerce/alembic.ini upgrade head &&
+      python -m backend.database.seeds.seed"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: ["seed"]
+
+volumes:
+  backend_postgres_data:

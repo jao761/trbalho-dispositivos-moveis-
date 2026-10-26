@@ -6,6 +6,7 @@ export const API_CONFIG = {
   CORE_URL: process.env.EXPO_PUBLIC_CORE_API_URL || '',
   ORDER_URL: process.env.EXPO_PUBLIC_ORDER_API_URL || '',
   PAYMENT_URL: process.env.EXPO_PUBLIC_PAYMENT_API_URL || '',
+  PRODUCT_URL: process.env.EXPO_PUBLIC_PRODUCT_API_URL || '',
 };
 
 export const USE_MOCKS = process.env.EXPO_PUBLIC_USE_MOCKS === 'true';

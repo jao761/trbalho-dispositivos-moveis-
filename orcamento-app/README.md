@@ -9,11 +9,19 @@ Aplicativo Expo para clientes, orçamentos, pedidos e pagamentos, acompanhado po
 3. Instale o aplicativo com `npm install` e execute `npx expo start`.
 4. Com o ambiente virtual do backend ativo, aplique as migrações e carregue a base inicial conforme os scripts em `backend/database`.
 
+Para subir PostgreSQL e as APIs em Docker:
+
+```bash
+docker compose up --build
+docker compose --profile seed run --rm seed
+```
+
 ## Serviços
 
 - Core API: `uvicorn backend.api.core_api.main:app --host 0.0.0.0 --port 8000`
 - Order API: `uvicorn backend.api.order_api.main:app --host 0.0.0.0 --port 8001`
 - Payment API: `uvicorn backend.api.payment_api.main:app --host 0.0.0.0 --port 8002`
+- Product API: execute `docker compose -f ../api-ingestion/docker-compose.yml up --build` na raiz do repositório; por padrão fica em `http://localhost:8050`.
 
 Cada serviço oferece documentação interativa em `/docs`. O app mantém o JWT no armazenamento seguro nativo e o valida em `/auth/me` ao iniciar.
 
