@@ -43,6 +43,33 @@ require_command curl
 require_command node
 require_command npm
 
+start_frontend() {
+  case "$FRONTEND_MODE" in
+    --web)
+      npm run web
+      ;;
+    --android)
+      if command -v adb >/dev/null 2>&1; then
+        npm run android
+      else
+        cat <<'EOF'
+
+Aviso: Android SDK/adb não encontrado.
+O Metro será iniciado sem abrir um emulador automaticamente.
+Abra o Expo Go em um dispositivo Android e escaneie o QR code exibido.
+Para habilitar `./prompt.sh --android` com abertura automática, instale o
+Android SDK, defina ANDROID_HOME (ou ANDROID_SDK_ROOT) e adicione $ANDROID_HOME/platform-tools ao PATH.
+
+EOF
+        npm run start
+      fi
+      ;;
+    --ios)
+      npm run ios
+      ;;
+  esac
+}
+
 echo "==> Instalando dependências do frontend"
 cd "$APP_DIR"
 npm ci
@@ -87,14 +114,4 @@ Portas:
 Modo do frontend: $FRONTEND_MODE
 EOF
 
-case "$FRONTEND_MODE" in
-  --web)
-    npm run web
-    ;;
-  --android)
-    npm run android
-    ;;
-  --ios)
-    npm run ios
-    ;;
-esac
+start_frontend
