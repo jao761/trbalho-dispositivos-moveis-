@@ -32,9 +32,15 @@ docker compose up --build
 O arquivo de origem insere `categoria(id, nome, ativo)` e
 `produto(id, nome, marca, codigo_barras, categoria_id)`. O schema mantém o
 campo adicional `ativo` de categoria e os demais campos solicitados de produto.
-Como esses campos não existem na fonte, `preco_custo`, `preco_venda`, `unidade`
-e `estoque` permanecem `NULL`, e `produto.ativo` usa o default `TRUE`; nenhum
-valor existente foi substituído ou descartado.
+Como a fonte não possui `preco_custo`, esse campo permanece `NULL`.
+
+O script `database/04-product-attributes.sql` preenche `preco_venda`, `unidade`
+e `estoque` com dados de demonstração determinísticos: a unidade é inferida
+quando possível pelo nome do produto e o preço/estoque são calculados por
+categoria e pelo identificador sequencial. O script só atualiza campos
+`NULL`, não usa aleatoriedade e pode ser executado novamente sem substituir
+valores já preenchidos. Esses valores não representam preços ou saldos reais.
+O schema também impede preços e estoques negativos.
 
 Os 1000 registros de `produto_estatistica` são dados estatísticos determinísticos
 de demonstração, gerados a partir da ordenação dos IDs e não provenientes da

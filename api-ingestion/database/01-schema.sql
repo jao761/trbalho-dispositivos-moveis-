@@ -14,9 +14,9 @@ CREATE TABLE IF NOT EXISTS produto (
     codigo_barras VARCHAR(50),
     categoria_id UUID REFERENCES categoria(id),
     preco_custo NUMERIC(10, 2),
-    preco_venda NUMERIC(10, 2),
-    unidade VARCHAR(10),
-    estoque INTEGER,
+    preco_venda NUMERIC(10, 2) CHECK (preco_venda IS NULL OR preco_venda >= 0),
+    unidade VARCHAR(10) CHECK (unidade IS NULL OR btrim(unidade) <> ''),
+    estoque INTEGER CHECK (estoque IS NULL OR estoque >= 0),
     ativo BOOLEAN NOT NULL DEFAULT TRUE
 );
 

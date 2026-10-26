@@ -1,3 +1,4 @@
+
 services:
   postgres:
     image: postgres:16
@@ -31,7 +32,7 @@ services:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
     ports:
-      - "${API_PORT:-8000}:8000"
+      - "${API_PORT:-8050}:8000"
     depends_on:
       postgres:
         condition: service_healthy
