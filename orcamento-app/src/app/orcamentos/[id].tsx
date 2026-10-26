@@ -38,6 +38,8 @@ export default function QuoteDetailScreen() {
   };
 
   useEffect(() => {
+    // The request synchronizes the detail screen with the API.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadQuote();
   }, [id]);
 

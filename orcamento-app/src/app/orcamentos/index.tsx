@@ -38,6 +38,8 @@ export default function QuotesScreen() {
   };
 
   useEffect(() => {
+    // The request synchronizes the list with the selected filter.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchQuotes(filter);
   }, [filter]);
 

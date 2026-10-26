@@ -41,6 +41,8 @@ export default function DashboardScreen() {
   };
 
   useEffect(() => {
+    // The initial request synchronizes dashboard state with the API.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
     const unsubscribe = subscribeSession(() => {
       setUser(getActiveUser());

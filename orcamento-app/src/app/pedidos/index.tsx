@@ -27,6 +27,8 @@ export default function OrdersScreen() {
   };
 
   useEffect(() => {
+    // The initial request synchronizes the list with the API.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchOrders();
   }, []);
 

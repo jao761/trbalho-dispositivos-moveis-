@@ -29,6 +29,8 @@ export default function ClientsScreen() {
   };
 
   useEffect(() => {
+    // The initial request synchronizes screen state with the API.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchClients();
   }, []);
 
