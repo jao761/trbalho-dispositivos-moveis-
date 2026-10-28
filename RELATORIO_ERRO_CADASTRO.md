@@ -79,7 +79,26 @@ Também foi adicionada a URL da API de produtos, que não estava presente no `.e
 - Logs recentes dos serviços: sem erros de aplicação.
 - Erros históricos do Expo Go SDK 57 foram identificados no log, mas já foram tratados pela migração do projeto para SDK 58 no commit `ee81ad1`.
 
-## 6. Procedimento para executar novamente
+## 6. Configuração corrigida para Web
+
+Como o erro foi reproduzido no navegador em `http://localhost:8081`, o ambiente local passou a usar:
+
+```text
+EXPO_PUBLIC_CORE_API_URL=http://localhost:8000
+EXPO_PUBLIC_ORDER_API_URL=http://localhost:8001
+EXPO_PUBLIC_PAYMENT_API_URL=http://localhost:8002
+EXPO_PUBLIC_PRODUCT_API_URL=http://localhost:8050
+```
+
+Essa configuração não depende do IP DHCP da rede e funciona enquanto o navegador e os containers estiverem na mesma máquina.
+
+Para celular físico, substitua `localhost` pelo IP LAN atual da máquina. O IP pode ser consultado com:
+
+```bash
+hostname -I
+```
+
+## 7. Procedimento para executar novamente
 
 Após alterar variáveis `EXPO_PUBLIC_*`, reinicie o Metro para que o Expo recarregue o `.env`:
 
@@ -90,6 +109,6 @@ npx expo start -c
 
 No dispositivo físico, computador e celular precisam estar na mesma rede. Se o IP da máquina mudar, atualize novamente as URLs do `.env` e reinicie o Metro.
 
-## 7. Observações
+## 8. Observações
 
 O timeout está corretamente implementado como proteção do cliente. Ele não deve ser removido; a correção necessária era apontar o frontend para o IP alcançável da máquina.
