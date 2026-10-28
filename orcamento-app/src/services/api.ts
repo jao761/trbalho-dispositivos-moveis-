@@ -74,6 +74,7 @@ export async function request<T>(baseUrl: string, endpoint: string, options: Req
     clearTimeout(timeoutId);
     if (error instanceof Error && error.name === 'AbortError') {
       throw new Error('A requisição expirou (timeout). Verifique se as APIs estão em execução.');
+      console.log(error)
     }
     throw error;
   }
